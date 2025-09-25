@@ -7,6 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
+import LoadingSpinner from "@/components/LoadingSpinner";
+
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 type Category = {
   id: string;
@@ -15,39 +20,54 @@ type Category = {
   updatedAt: string;
 };
 
+// Schema validasi
+const categorySchema = z.object({
+  name: z.string().min(1, "Nama kategori harus diisi"),
+});
+
+type CategoryFormValues = z.infer<typeof categorySchema>;
+
 export default function CategoryDetailPage() {
   const router = useRouter();
   const params = useParams();
   const categoryId = params?.id as string;
 
   const [category, setCategory] = useState<Category | null>(null);
-  const [name, setName] = useState("");
+  const [fetching, setFetching] = useState(true);
   const [loading, setLoading] = useState(false);
 
+  const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } =
+    useForm<CategoryFormValues>({
+      resolver: zodResolver(categorySchema),
+      defaultValues: { name: "" },
+    });
+
   const fetchCategory = async () => {
+    setFetching(true);
     try {
       const result = await categoryService.getCategories();
       const cat = result.data.find((c: Category) => c.id === categoryId);
       if (!cat) {
         toast.error("Kategori tidak ditemukan");
-        return router.push("/category");
+        return router.push("/adminpage/category");
       }
       setCategory(cat);
-      setName(cat.name);
+      setValue("name", cat.name);
     } catch (error) {
       toast.error("Gagal mengambil data kategori");
+    } finally {
+      setFetching(false);
     }
   };
 
-  const handleUpdate = async () => {
-    if (!name.trim()) return toast.error("Nama kategori harus diisi");
-
+  const onSubmit = async (values: CategoryFormValues) => {
     setLoading(true);
     try {
-      await categoryService.updateCategory(categoryId, { name });
+      await categoryService.updateCategory(categoryId, values);
       toast.success("Kategori berhasil diperbarui");
       router.push("/adminpage/category");
     } catch (error) {
+      console.error(error);
       toast.error("Gagal memperbarui kategori");
     } finally {
       setLoading(false);
@@ -56,43 +76,62 @@ export default function CategoryDetailPage() {
 
   useEffect(() => {
     fetchCategory();
-  }, [categoryId]);
+  }, [categoryId, setValue]);
+
+  if (fetching) return <LoadingSpinner size={12} />;
 
   if (!category) return null;
 
   return (
-    <Card className="max-w-md mx-auto mt-6 p-6">
+    <Card className="max-w-md mt-6 p-6">
       <h1 className="text-xl font-bold mb-4">Detail Kategori</h1>
-      <div className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-1">ID:</label>
           <p className="text-gray-700">{category.id}</p>
         </div>
+
         <div>
           <label className="block text-sm font-medium mb-1">Dibuat:</label>
           <p className="text-gray-700">
             {new Date(category.createdAt).toLocaleString()}
           </p>
         </div>
+
         <div>
           <label className="block text-sm font-medium mb-1">Diperbarui:</label>
           <p className="text-gray-700">
             {new Date(category.updatedAt).toLocaleString()}
           </p>
         </div>
+
         <div>
           <label className="block text-sm font-medium mb-1">Nama Kategori:</label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} />
+          <Input {...register("name")} />
+          {errors.name && (
+            <p className="text-red-500 text-sm">{errors.name.message}</p>
+          )}
         </div>
+
         <div className="flex space-x-2">
-          <Button onClick={handleUpdate} disabled={loading}>
-            {loading ? "Menyimpan..." : "Simpan"}
+          <Button type="submit" disabled={isSubmitting || loading}>
+            {isSubmitting || loading ? (
+              <div className="flex items-center space-x-2">
+                <LoadingSpinner size={5} />
+                <span>Menyimpan...</span>
+              </div>
+            ) : (
+              "Simpan"
+            )}
           </Button>
-          <Button variant="outline" onClick={() => router.push("/adminpage/category")}>
+          <Button
+            variant="outline"
+            onClick={() => router.push("/adminpage/category")}
+          >
             Kembali
           </Button>
         </div>
-      </div>
+      </form>
     </Card>
   );
 }

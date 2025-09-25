@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { articleService, categoryService } from "@/lib/api";
-import { Card } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import { toast } from "sonner";
 import {
   Pagination,
@@ -14,29 +15,59 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 
+type Article = {
+  id: string;
+  title: string;
+  content: string;
+  imageUrl?: string;
+  user: { username: string };
+  category: { name: string; id: string };
+  createdAt: string;
+  updatedAt: string;
+};
 
-export default function LandingPage() {
-  const [articles, setArticles] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(1);
-  const [limit] = useState(9); // jumlah artikel per halaman
-  const [totalPages, setTotalPages] = useState(1);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
+type Category = { id: string; name: string };
 
-
+export default function ArticlePage() {
   const router = useRouter();
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
 
-  const fetchArticles = async (page: number, category?: string) => {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  // Delete dialog state
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+
+  // pagination states
+  const [page, setPage] = useState<number>(1);
+  const [limit] = useState<number>(10);
+  const [totalPages, setTotalPages] = useState<number>(1);
+
+  const fetchArticles = async (page: number) => {
     setLoading(true);
     try {
-      const res = await articleService.getArticles(page, limit, undefined, category);
-      setArticles(res.data);
-      setTotalPages(res.totalPages);
-    } catch (err) {
-      console.error("Gagal mengambil artikel", err);
+      const result = await articleService.getArticles({
+        page,
+        limit,
+        category: selectedCategory === "all" ? undefined : selectedCategory,
+        title: debouncedSearch || undefined,
+      });
+      setArticles(result.data);
+      setTotalPages(result.totalPages);
+    } catch (error) {
       toast.error("Gagal mengambil artikel");
     } finally {
       setLoading(false);
@@ -45,12 +76,36 @@ export default function LandingPage() {
 
   const fetchCategories = async () => {
     try {
-      const res = await categoryService.getCategories({ limit: 99 });
-      setCategories(res.data);
+      const result = await categoryService.getCategories();
+      setCategories(result.data);
     } catch (err) {
-      console.error("Gagal mengambil kategori", err);
       toast.error("Gagal mengambil kategori");
     }
+  };
+
+  // Debounce search input
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 400);
+
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const formatted = date.toLocaleString("id-ID", {
+      day: "2-digit",
+      month: "short", // hasil: Jan, Feb, Mar, ..., Sept
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: "Asia/Jakarta",
+    });
+    // ganti ":" dengan "." untuk jam
+    return formatted.replace(/:/, ".");
   };
 
   useEffect(() => {
@@ -58,32 +113,27 @@ export default function LandingPage() {
   }, []);
 
   useEffect(() => {
-    fetchArticles(page, selectedCategory);
-  }, [page, selectedCategory]);
-
+    fetchArticles(page);
+  }, [page, selectedCategory, debouncedSearch]);
 
   return (
-    <section>
-      <h1 className="text-2xl font-bold mb-4">Articles</h1>
-
-      {loading && <p>Loading...</p>}
-      {!loading && articles.length === 0 && <p>Tidak ada artikel</p>}
-
-      <div className="mb-4 flex gap-4 items-center">
+    <div  className="space-y-4 bg-white rounded-2xl p-4">
+      {/* Filter & Search */}
+      <div className="flex gap-2">
         <Select
-          value={selectedCategory || "all"}
+          value={selectedCategory}
           onValueChange={(val) => {
+            setSelectedCategory(val);
             setPage(1);
-            setSelectedCategory(val === "all" ? undefined : val);
           }}
         >
-          <SelectTrigger className="w-64">
-            <SelectValue placeholder="Pilih kategori" />
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Pilih Kategori" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Semua Kategori</SelectItem>
             {categories
-              .filter((cat) => cat.id) // pastikan ada id
+              .filter((cat) => cat.id) // hanya yang ada id
               .map((cat) => (
                 <SelectItem key={cat.id} value={cat.id}>
                   {cat.name}
@@ -91,46 +141,87 @@ export default function LandingPage() {
               ))}
           </SelectContent>
         </Select>
+
+
+        <Input
+          placeholder="Cari artikel..."
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1); // reset page saat search berubah
+          }}
+        />
       </div>
 
+      <div>
+        {loading ? (
+          <div className="flex justify-center items-center md:h-64">
+            <LoadingSpinner size={10} />
+          </div>
+        ) : articles.length === 0 ? (
+          <div className="flex justify-center items-center md:h-64 text-gray-500">
+            Data tidak tersedia
+          </div>
+        ) : (
+          <ul className="w-full flex flex-col gap-4">
+            {articles.map((article, idx) => (
+              <Card
+                key={article.id}
+                onClick={() => router.push(`/userpage/article/${article.id}`)}
+                className="cursor-pointer flex flex-col md:flex-row items-start gap-4 p-4 border rounded-lg shadow-sm hover:shadow-md transition"
+              >
+                {/* Image */}
+                {article.imageUrl ? (
+                  <img
+                    src={article.imageUrl}
+                    alt={article.title}
+                    className="md:w-60 md:h-60 w-full object-cover rounded-md"
+                  />
+                ) : (
+                  <div className="md:w-60 md:h-60 w-full min-h-30 bg-gray-200 rounded-md flex items-center justify-center text-gray-400">
+                    No Image
+                  </div>
+                )}
 
-      <div className="flex flex-col gap-2">
-        {articles.map((article) => (
-          <Card
-            key={article.id}
-            className="p-4 cursor-pointer hover:bg-gray-50 flex flex-row"
-            onClick={() => router.push(`/userpage/article/${article.id}`)}
-          >
-            <img
-              src={article.imageUrl || "/dummy.png"}
-              alt={article.title}
-              className="w-64 h-40 object-cover"
-            />
-            <div className="ml-4">
-              <h2 className="font-semibold">{article.title}</h2>
-              <p className="line-clamp-2 text-sm text-gray-700">
-                {article.content}
-              </p>
-              <p className="text-sm text-gray-500">
-                By {article.user.username} | Category: {article.category.name}
-              </p>
-              <div className="mt-2 flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => router.push(`/userpage/article/${article.id}`)}
-                >
-                  Detail
-                </Button>
-              </div>
-            </div>
-          </Card>
-        ))}
+                <div className="w-full">
+                  <div className="flex justify-between items-end w-full mb-4">
+                    {/* Info */}
+                    <div className="flex flex-col gap-1">
+                      <h3 className="font-semibold text-xl">{article.title}</h3>
+                      <p className="text-sm text-gray-500">
+                        By {article.user.username} | Category: {article.category.name}
+                      </p>
+                    </div>
+
+                    {/* Aksi */}
+                    <div className="flex justify-end gap-2 items-center">
+                      <p className="text-sm text-gray-500">
+                        Dibuat: {formatDateTime(article.createdAt)}
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => router.push(`/userpage/article/${article.id}`)}
+                        className="cursor-pointer"
+                      >
+                        Detail
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="line-clamp-2 text-sm text-gray-700">
+                    {article.content}
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </ul>
+        )}
       </div>
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <Pagination className="mt-6">
+        <Pagination>
           <PaginationContent>
             <PaginationItem>
               <PaginationPrevious
@@ -153,12 +244,15 @@ export default function LandingPage() {
             <PaginationItem>
               <PaginationNext
                 onClick={() => page < totalPages && setPage(page + 1)}
-                className={page === totalPages ? "pointer-events-none opacity-50" : ""}
+                className={
+                  page === totalPages ? "pointer-events-none opacity-50" : ""
+                }
               />
             </PaginationItem>
           </PaginationContent>
         </Pagination>
       )}
-    </section>
+
+    </div>
   );
 }

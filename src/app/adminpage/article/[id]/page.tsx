@@ -7,11 +7,34 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
+import LoadingSpinner from "@/components/LoadingSpinner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+import { useForm, Controller } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { UploadCloud } from "lucide-react";
 
 interface Category {
   id: string;
   name: string;
 }
+
+// Schema validasi
+const articleSchema = z.object({
+  title: z.string().min(1, "Judul artikel wajib diisi"),
+  categoryId: z.string().min(1, "Kategori wajib dipilih"),
+  content: z.string().min(1, "Deskripsi artikel wajib diisi"),
+  imageUrl: z.string().min(1, "Gambar wajib di-upload"),
+});
+
+type ArticleFormValues = z.infer<typeof articleSchema>;
 
 export default function ArticleEditPage() {
   const params = useParams();
@@ -19,120 +42,197 @@ export default function ArticleEditPage() {
   const { id } = params;
   const articleId = Array.isArray(id) ? id[0] : id;
 
-  const [title, setTitle] = useState("");
-  const [categoryId, setCategoryId] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
-  const [content, setContent] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
   const [uploading, setUploading] = useState(false);
 
-  // Ambil kategori
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    control,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<ArticleFormValues>({
+    resolver: zodResolver(articleSchema),
+    defaultValues: {
+      title: "",
+      categoryId: "",
+      content: "",
+      imageUrl: "",
+    },
+  });
+
+  const imageUrl = watch("imageUrl");
+
+  // Fetch categories
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const result = await categoryService.getCategories();
-        setCategories(result.data);
+        const res = await categoryService.getCategories({ limit: 99 });
+        setCategories(res.data);
       } catch (err) {
-        console.error("Gagal mengambil kategori", err);
+        console.error(err);
+        toast.error("Gagal mengambil kategori");
       }
     };
     fetchCategories();
   }, []);
 
-  // Ambil data artikel
+  // Fetch article data
   useEffect(() => {
     if (!articleId) return;
+
     const fetchArticle = async () => {
+      setFetching(true);
       try {
         const res = await articleService.getArticleById(articleId);
-        setTitle(res.title);
-        setCategoryId(res.category.id);
-        setContent(res.content);
-        setImageUrl(res.imageUrl || "");
+        setValue("title", res.title);
+        setValue("categoryId", res.category.id);
+        setValue("content", res.content);
+        setValue("imageUrl", res.imageUrl || "");
       } catch (err) {
-        console.error("Gagal mengambil artikel", err);
+        console.error(err);
+        toast.error("Gagal mengambil artikel");
+      } finally {
+        setFetching(false);
       }
     };
-    fetchArticle();
-  }, [articleId]);
 
-  // Upload gambar
+    fetchArticle();
+  }, [articleId, setValue]);
+
+  // Upload file
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0] || null;
-    setFile(selectedFile);
+    const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
     try {
       setUploading(true);
       const res = await uploadService.uploadFile(selectedFile);
-      setImageUrl(res.imageUrl);
+      setValue("imageUrl", res.imageUrl, { shouldValidate: true });
     } catch (err) {
-      console.error("Gagal upload file", err);
+      console.error(err);
       toast.error("Gagal meng-upload file");
     } finally {
       setUploading(false);
     }
   };
 
-  // Submit update
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title || !categoryId || !content || !imageUrl) {
-      toast.error("Semua field harus diisi dan file harus di-upload!");
-      return;
-    }
-
-    setLoading(true);
+  const onSubmit = async (values: ArticleFormValues) => {
     try {
-      await articleService.updateArticle(articleId!, { title, categoryId, content, imageUrl });
+      await articleService.updateArticle(articleId!, values);
       toast.success("Artikel berhasil diperbaharui");
       router.push("/adminpage/article");
     } catch (err) {
       console.error(err);
-      toast.error("Gagal Memperbaharui Artikel");
-    } finally {
-      setLoading(false);
+      toast.error("Gagal memperbaharui artikel");
     }
   };
+
+  if (fetching) return <LoadingSpinner size={12} />;
 
   return (
     <Card className="max-w-md mt-6 p-6">
       <h1 className="text-2xl font-bold mb-4">Edit Artikel</h1>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        <Input
-          placeholder="Judul Artikel"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          required
-        />
-        <select
-          className="border rounded p-2"
-          value={categoryId}
-          onChange={(e) => setCategoryId(e.target.value)}
-          required
-        >
-          <option value="">Pilih Kategori</option>
-          {categories.map((cat) => (
-            <option key={cat.id} value={cat.id}>
-              {cat.name}
-            </option>
-          ))}
-        </select>
-        <textarea
-          placeholder="Deskripsi Artikel"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          className="border rounded p-2"
-          rows={5}
-          required
-        />
-        <input type="file" accept="image/*" onChange={handleFileChange} />
-        {imageUrl && <img src={imageUrl} alt="Preview" className="mt-2 w-64" />}
-        {uploading && <p>Uploading file...</p>}
-        <Button type="submit" disabled={loading || uploading}>
-          {loading ? "Menyimpan..." : "Update Artikel"}
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
+        {/* Title */}
+        <div>
+          <Input placeholder="Judul Artikel" {...register("title")} />
+          {errors.title && (
+            <p className="text-red-500 text-sm">{errors.title.message}</p>
+          )}
+        </div>
+
+        {/* Category */}
+        <div>
+          <Controller
+            control={control}
+            name="categoryId"
+            render={({ field }) => (
+              <Select onValueChange={field.onChange} value={field.value}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Pilih Kategori" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories
+                    .filter((cat) => cat.id)
+                    .map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
+          {errors.categoryId && (
+            <p className="text-red-500 text-sm">{errors.categoryId.message}</p>
+          )}
+        </div>
+
+        {/* Content */}
+        <div>
+          <textarea
+            placeholder="Deskripsi Artikel"
+            {...register("content")}
+            className="border rounded p-2 w-full"
+            rows={5}
+          />
+          {errors.content && (
+            <p className="text-red-500 text-sm">{errors.content.message}</p>
+          )}
+        </div>
+
+        <div className="border-dashed border-2 border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 transition">
+          <label className="w-full text-center flex flex-col items-center justify-center gap-2 cursor-pointer">
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            {!imageUrl ? (
+              <p className="text-gray-500">
+                Klik atau seret file ke sini untuk upload
+              </p>
+            ) : (
+              <div className="flex flex-col items-center justify-center">
+                <img
+                  src={imageUrl}
+                  alt="Preview"
+                  className="w-40 h-40 object-cover rounded"
+                />
+                <p className="text-gray-500 mt-2 text-center">
+                  Klik atau seret file ke sini untuk ubah file
+                </p>
+              </div>
+
+            )}
+            <div className="flex items-center gap-2">
+              <UploadCloud className="w-10 h-10 text-gray-400" />
+              <p className="text-gray-500 font-semibold text-sm">Upload file</p>
+            </div>
+          </label>
+          {uploading && (
+            <p className="mt-2 text-sm text-gray-500">Uploading...</p>
+          )}
+        </div>
+
+        {errors.imageUrl && (
+          <p className="text-red-500 text-sm">{errors.imageUrl.message}</p>
+        )}
+
+        {/* Submit */}
+        <Button type="submit" disabled={isSubmitting || uploading}>
+          {isSubmitting ? (
+            <div className="flex items-center space-x-2">
+              <LoadingSpinner size={5} />
+              <span>Menyimpan...</span>
+            </div>
+          ) : (
+            "Update Artikel"
+          )}
         </Button>
       </form>
     </Card>

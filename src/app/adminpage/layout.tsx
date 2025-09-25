@@ -5,19 +5,22 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import Cookies from "js-cookie";
 import { authService } from "@/lib/api";
-import { Button } from "@/components/ui/button";
-
+import { AppSidebar } from "@/components/app-sidebar";
 import {
   SidebarProvider,
-  Sidebar,
-  SidebarContent,
-  SidebarHeader,
-  SidebarFooter,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
+  SidebarInset,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { Separator } from "@/components/ui/separator";
+import { ArrowRight, ChevronRight } from "lucide-react";
 
 interface Props {
   children: React.ReactNode;
@@ -25,6 +28,7 @@ interface Props {
 
 export default function AdminLayout({ children }: Props) {
   const [user, setUser] = useState<{ username: string; role: string }>({ username: "", role: "" });
+  const [scrolled, setScrolled] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -37,8 +41,8 @@ export default function AdminLayout({ children }: Props) {
 
     authService.profile()
       .then((data) => {
-        setUser({ username: data.username, role: data.role }); // ambil username & role
-        if (data.role !== "Admin") router.replace("/auth/login"); // akses hanya admin
+        setUser({ username: data.username, role: data.role });
+        if (data.role !== "Admin") router.replace("/auth/login");
       })
       .catch(() => router.replace("/auth/login"));
   }, [router]);
@@ -49,60 +53,52 @@ export default function AdminLayout({ children }: Props) {
     router.push("/auth/login");
   };
 
-  const menuItems = [
-    { label: "Dashboard", href: "/adminpage" },
-    { label: "Article", href: "/adminpage/article" },
-    { label: "Category", href: "/adminpage/category" },
-  ];
+  // Scroll listener
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 0);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Generate breadcrumb
+  const pathSegments = pathname.split("/").filter(Boolean);
+  const breadcrumbItems = pathSegments.map((segment, index) => {
+    const href = "/" + pathSegments.slice(0, index + 1).join("/");
+    const isLast = index === pathSegments.length - 1;
+    const label = segment.charAt(0).toUpperCase() + segment.slice(1);
+
+    return (
+      <BreadcrumbItem key={href}>
+        {isLast ? (
+          <BreadcrumbPage>{label}</BreadcrumbPage>
+        ) : (
+          <>
+            <BreadcrumbLink href={href}>{label}</BreadcrumbLink>
+            <ChevronRight size={16}/>
+          </>
+        )}
+      </BreadcrumbItem>
+    );
+  });
 
   return (
     <SidebarProvider defaultOpen>
-      <div className="flex min-h-screen">
-        {/* Sidebar */}
-        <Sidebar side="left" collapsible="offcanvas">
-          <SidebarHeader className="my-4 mx-6">
-            <h2 className="text-2xl font-bold">Admin Panel</h2>
-          </SidebarHeader>
+      <AppSidebar />
+      <SidebarInset>
+        <header className={`fixed w-full z-50 flex h-16 shrink-0 items-center gap-2 px-4 transition-colors duration-300 ${scrolled ? 'bg-white shadow-md' : ''}`}>
+          <div className="flex items-center gap-2 px-4">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
+            <Breadcrumb>
+              <BreadcrumbList>{breadcrumbItems}</BreadcrumbList>
+            </Breadcrumb>
+          </div>
+        </header>
 
-          <SidebarContent className="mx-4">
-            <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    asChild
-                    className={pathname === item.href ? "bg-gray-200 font-semibold" : ""}
-                  >
-                    <Link href={item.href}>{item.label}</Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarContent>
-
-          <SidebarFooter className="flex flex-col gap-2 mx-4">
-            <div className="flex gap-2 items-center">
-              {/* Avatar */}
-              <div className="w-10 h-10 rounded-full bg-gray-400 flex items-center justify-center text-white font-bold text-lg">
-                {user.username ? user.username[0].toUpperCase() : "U"}
-              </div>
-
-              {/* Username & role */}
-              <div>
-                <h1 className="text-sm font-medium">{user.username}</h1>
-                <h2 className="text-xs text-gray-500">{user.role}</h2>
-              </div>
-            </div>
-
-            <Button variant="outline" className="w-full cursor-pointer" onClick={handleLogout}>
-              Logout
-            </Button>
-          </SidebarFooter>
-
-        </Sidebar>
-
-        <SidebarTrigger className="absolute top-4 left-4 md:hidden" />
-      </div>
-      <main className="flex-1 bg-gray-100 p-6 w-full">{children}</main>
+        <main className="flex-1 bg-gray-100 p-6 pt-24 w-full">{children}</main>
+      </SidebarInset>
     </SidebarProvider>
   );
 }

@@ -31,6 +31,7 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
 } from "@/components/ui/alert-dialog";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 
 type Category = {
@@ -127,11 +128,11 @@ export default function CategoryPage() {
   }, [page, debouncedSearch]);
 
   return (
-    <div className="space-y-4">
+    <Card className="space-y-2 px-4">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Kategori</h1>
         <Button onClick={() => router.push("/adminpage/category/create")}>
-          Tambah
+          Tambah Kategori
         </Button>
       </div>
 
@@ -146,7 +147,7 @@ export default function CategoryPage() {
         />
       </div>
 
-      <Card>
+      <Card className="p-4">
         <Table>
           <TableHeader>
             <TableRow>
@@ -159,15 +160,19 @@ export default function CategoryPage() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center">
-                  Memuat...
+              <TableRow className="w-full">
+                <TableCell colSpan={5} className="p-0">
+                  <div className="flex justify-center items-center h-64 w-fullw">
+                    <LoadingSpinner size={10} />
+                  </div>
                 </TableCell>
               </TableRow>
             ) : categories.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center">
-                  Data tidak tersedia
+              <TableRow className="w-full">
+                <TableCell colSpan={5} className="p-0">
+                  <div className="w-full flex justify-center items-center h-64 text-gray-500">
+                    Data tidak tersedia
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (
@@ -255,6 +260,6 @@ export default function CategoryPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </Card>
   );
 }

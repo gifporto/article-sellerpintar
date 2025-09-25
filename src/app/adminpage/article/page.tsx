@@ -153,11 +153,11 @@ export default function ArticlePage() {
   }, [page, selectedCategory, debouncedSearch]);
 
   return (
-    <div className="space-y-4">
+    <Card className="space-y-2 px-4">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Artikel</h1>
         <Button onClick={() => router.push("/adminpage/article/create")}>
-          Buat Artikel
+          Tambah Artikel
         </Button>
       </div>
 
@@ -196,7 +196,7 @@ export default function ArticlePage() {
         />
       </div>
 
-      <Card>
+      <Card className="p-4">
         <Table>
           <TableHeader>
             <TableRow>
@@ -211,17 +211,17 @@ export default function ArticlePage() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow>
-                <TableCell colSpan={5} className="p-0">
-                  <div className="flex justify-center items-center h-64">
+              <TableRow className="w-full">
+                <TableCell colSpan={7} className="p-0">
+                  <div className="flex justify-center items-center h-64 w-fullw">
                     <LoadingSpinner size={10} />
                   </div>
                 </TableCell>
               </TableRow>
             ) : articles.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="p-0">
-                  <div className="flex justify-center items-center h-64 text-gray-500">
+              <TableRow className="w-full">
+                <TableCell colSpan={7} className="p-0">
+                  <div className="w-full flex justify-center items-center h-64 text-gray-500">
                     Data tidak tersedia
                   </div>
                 </TableCell>
@@ -313,6 +313,6 @@ export default function ArticlePage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </Card>
   );
 }
