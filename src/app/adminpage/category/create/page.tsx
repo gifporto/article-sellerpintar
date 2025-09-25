@@ -42,7 +42,7 @@ export default function CreateCategoryPage() {
   };
 
   return (
-    <Card className="max-w-md mt-6 p-6">
+    <Card className="max-w-md p-6">
       <h1 className="text-xl font-bold mb-4">Tambah Kategori</h1>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>

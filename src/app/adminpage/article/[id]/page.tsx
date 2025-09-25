@@ -15,11 +15,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { UploadCloud } from "lucide-react";
+import dummyData from "@/data/dummyData.json";
 
 interface Category {
   id: string;
@@ -46,6 +56,8 @@ export default function ArticleEditPage() {
   const [fetching, setFetching] = useState(true);
   const [uploading, setUploading] = useState(false);
 
+  const [previewData, setPreviewData] = useState<ArticleFormValues | null>(null);
+
   const {
     register,
     handleSubmit,
@@ -69,11 +81,11 @@ export default function ArticleEditPage() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await categoryService.getCategories({ limit: 99 });
-        setCategories(res.data);
+        const result = await categoryService.getCategories({ limit: 99 });
+        setCategories(result.data);
       } catch (err) {
-        console.error(err);
-        toast.error("Gagal mengambil kategori");
+        setCategories(dummyData.categories);
+        toast.error("Gagal mengambil kategori dari server, menggunakan data dummy");
       }
     };
     fetchCategories();
@@ -92,8 +104,13 @@ export default function ArticleEditPage() {
         setValue("content", res.content);
         setValue("imageUrl", res.imageUrl || "");
       } catch (err) {
-        console.error(err);
-        toast.error("Gagal mengambil artikel");
+        // fallback dummy
+        const articleDummy = dummyData.articles.find(a => a.id === articleId) || dummyData.articles[0];
+        setValue("title", articleDummy.title);
+        setValue("categoryId", articleDummy.category.id);
+        setValue("content", articleDummy.content);
+        setValue("imageUrl", articleDummy.imageUrl);
+        toast.error("Gagal mengambil artikel dari server, menggunakan data dummy");
       } finally {
         setFetching(false);
       }
@@ -119,6 +136,22 @@ export default function ArticleEditPage() {
     }
   };
 
+  const handlePreview = (values: ArticleFormValues) => {
+    setPreviewData(values);
+  };
+
+  const onConfirmUpdate = async () => {
+    if (!previewData) return;
+    try {
+      await articleService.updateArticle(articleId!, previewData);
+      toast.success("Artikel berhasil diperbaharui");
+      router.push("/adminpage/article");
+    } catch (err) {
+      console.error(err);
+      toast.error("Gagal memperbaharui artikel");
+    }
+  };
+
   const onSubmit = async (values: ArticleFormValues) => {
     try {
       await articleService.updateArticle(articleId!, values);
@@ -133,9 +166,9 @@ export default function ArticleEditPage() {
   if (fetching) return <LoadingSpinner size={12} />;
 
   return (
-    <Card className="max-w-md mt-6 p-6">
+    <Card className="max-w-md p-6">
       <h1 className="text-2xl font-bold mb-4">Edit Artikel</h1>
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
+      <form onSubmit={handleSubmit(handlePreview)} className="flex flex-col gap-3">
         {/* Title */}
         <div>
           <Input placeholder="Judul Artikel" {...register("title")} />
@@ -223,17 +256,49 @@ export default function ArticleEditPage() {
           <p className="text-red-500 text-sm">{errors.imageUrl.message}</p>
         )}
 
-        {/* Submit */}
-        <Button type="submit" disabled={isSubmitting || uploading}>
-          {isSubmitting ? (
-            <div className="flex items-center space-x-2">
-              <LoadingSpinner size={5} />
-              <span>Menyimpan...</span>
-            </div>
-          ) : (
-            "Update Artikel"
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button
+              type="submit"
+              disabled={isSubmitting || uploading}
+              className="w-full"
+            >
+              {isSubmitting ? "Menyimpan..." : "Update Artikel"}
+            </Button>
+          </DialogTrigger>
+
+          {previewData && (
+            <DialogContent className="w-1/2 max-w-[50vw]">
+              <DialogHeader>
+                <DialogTitle>Preview Artikel</DialogTitle>
+                <DialogDescription asChild>
+                  <div className="space-y-3">
+                    <p><strong>Judul:</strong> {previewData.title}</p>
+                    <p>
+                      <strong>Kategori:</strong>{" "}
+                      {categories.find((c) => c.id === previewData.categoryId)?.name}
+                    </p>
+                    <p><strong>Deskripsi:</strong> {previewData.content}</p>
+                    <div>
+                      <strong>Gambar:</strong>
+                      <img
+                        src={previewData.imageUrl}
+                        alt="Preview"
+                        className="w-40 h-40 object-cover rounded mt-2"
+                      />
+                    </div>
+                  </div>
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setPreviewData(null)}>
+                  Batal
+                </Button>
+                <Button onClick={onConfirmUpdate}>Yakin Simpan</Button>
+              </DialogFooter>
+            </DialogContent>
           )}
-        </Button>
+        </Dialog>
       </form>
     </Card>
   );

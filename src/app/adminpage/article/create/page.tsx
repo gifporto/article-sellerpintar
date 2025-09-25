@@ -14,6 +14,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
 import { UploadCloud } from "lucide-react";
 
 import { useForm, Controller } from "react-hook-form";
@@ -39,6 +49,7 @@ export default function CreateArticlePage() {
   const router = useRouter();
   const [categories, setCategories] = useState<Category[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [previewData, setPreviewData] = useState<ArticleFormValues | null>(null);
 
   const {
     register,
@@ -99,10 +110,27 @@ export default function CreateArticlePage() {
     }
   };
 
+  const onConfirmSave = async () => {
+    if (!previewData) return;
+    try {
+      await articleService.createArticle(previewData);
+      toast.success("Artikel berhasil dibuat!");
+      router.push("/adminpage/article");
+    } catch (err) {
+      console.error(err);
+      toast.error("Gagal membuat artikel.");
+    }
+  };
+
+  const handlePreview = (values: ArticleFormValues) => {
+    setPreviewData(values);
+  };
+
+
   return (
-    <Card className="max-w-md mt-6 p-6">
+    <Card className="max-w-md p-6">
       <h1 className="text-xl font-bold mb-4">Buat Artikel Baru</h1>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={handleSubmit(handlePreview)} className="space-y-4">
         {/* Title */}
         <div>
           <Input placeholder="Judul Artikel" {...register("title")} />
@@ -190,10 +218,52 @@ export default function CreateArticlePage() {
           <p className="text-red-500 text-sm">{errors.imageUrl.message}</p>
         )}
 
-        {/* Submit */}
-        <Button type="submit" disabled={isSubmitting || uploading} className="w-full">
-          {isSubmitting ? "Menyimpan..." : "Buat Artikel"}
-        </Button>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button
+              type="submit"
+              disabled={isSubmitting || uploading}
+              className="w-full"
+            >
+              {isSubmitting ? "Menyimpan..." : "Buat Artikel"}
+            </Button>
+          </DialogTrigger>
+
+          {previewData && (
+            <DialogContent className="w-1/2 max-w-[50vw]">
+              <DialogHeader>
+                <DialogTitle>Preview Artikel</DialogTitle>
+                <DialogDescription asChild>
+                  <div className="space-y-3">
+                    <p><strong>Judul:</strong> {previewData.title}</p>
+                    <p>
+                      <strong>Kategori:</strong>{" "}
+                      {categories.find((c) => c.id === previewData.categoryId)?.name}
+                    </p>
+                    <p><strong>Deskripsi:</strong> {previewData.content}</p>
+                    <div>
+                      <strong>Gambar:</strong>
+                      <img
+                        src={previewData.imageUrl}
+                        alt="Preview"
+                        className="w-40 h-40 object-cover rounded mt-2"
+                      />
+                    </div>
+                  </div>
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setPreviewData(null)}
+                >
+                  Batal
+                </Button>
+                <Button onClick={onConfirmSave}>Yakin Simpan</Button>
+              </DialogFooter>
+            </DialogContent>
+          )}
+        </Dialog>
       </form>
     </Card>
   );

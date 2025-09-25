@@ -21,6 +21,7 @@ import {
   SidebarRail,
   SidebarFooter,
 } from "@/components/ui/sidebar";
+import dummyData from "@/data/dummyData.json"; 
 
 const data = {
   versions: ["1.0.1", "1.1.0-alpha", "2.0.0-beta1"],
@@ -69,28 +70,38 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   };
 
 
-  useEffect(() => {
-    const token = Cookies.get("token");
-    if (!token) {
-      router.replace("/auth/login");
-      return;
-    }
+ useEffect(() => {
+  const token = Cookies.get("token");
+  if (!token) {
+    router.replace("/auth/login");
+    return;
+  }
 
-    authService
-      .profile()
-      .then((data) => {
-        if (data.role !== "Admin") {
-          router.replace("/auth/login");
-          return;
-        }
-        setUser({
-          name: data.username,
-          role: data.role || "",
-          avatar: data.avatar || "/default-avatar.png",
-        });
-      })
-      .catch(() => router.replace("/auth/login"));
-  }, [router]);
+  authService
+    .profile()
+    .then((data) => {
+      if (data.role !== "Admin") {
+        router.replace("/auth/login");
+        return;
+      }
+      setUser({
+        name: data.username,
+        role: data.role || "",
+        avatar: data.avatar || "/default-avatar.png",
+      });
+    })
+    .catch(() => {
+      // fallback dummy
+      const dummyAdmin = dummyData.users.find(u => u.role === "Admin");
+      setUser({
+        name: dummyAdmin?.username || "AdminDummy",
+        role: dummyAdmin?.role || "Admin",
+        avatar: "",
+      });
+      // opsional: tampilkan toast agar user tahu
+      console.warn("API gagal, menggunakan data dummy untuk admin");
+    });
+}, [router]);
 
   const handleLogout = () => {
     Cookies.remove("token");

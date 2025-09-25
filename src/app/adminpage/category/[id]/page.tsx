@@ -12,6 +12,7 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import dummyData from "@/data/dummyData.json";
 
 type Category = {
   id: string;
@@ -42,19 +43,46 @@ export default function CategoryDetailPage() {
       defaultValues: { name: "" },
     });
 
+
   const fetchCategory = async () => {
     setFetching(true);
     try {
       const result = await categoryService.getCategories();
       const cat = result.data.find((c: Category) => c.id === categoryId);
       if (!cat) {
-        toast.error("Kategori tidak ditemukan");
-        return router.push("/adminpage/category");
+        toast.error("Kategori tidak ditemukan, menggunakan dummy data");
+        // fallback dummy
+        const dummyCat = dummyData.categories.find((c: any) => c.id === categoryId);
+        if (dummyCat) {
+          const catWithDates: Category = {
+            ...dummyCat,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          setCategory(catWithDates);
+          setValue("name", catWithDates.name);
+        } else {
+          return router.push("/adminpage/category");
+        }
+        return;
       }
       setCategory(cat);
       setValue("name", cat.name);
     } catch (error) {
-      toast.error("Gagal mengambil data kategori");
+      toast.warning("Gagal mengambil data kategori dari server, menggunakan dummy data");
+      // fallback dummy
+      const dummyCat = dummyData.categories.find((c: any) => c.id === categoryId);
+      if (dummyCat) {
+        const catWithDates: Category = {
+          ...dummyCat,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        setCategory(catWithDates);
+        setValue("name", catWithDates.name);
+      } else {
+        return router.push("/adminpage/category");
+      }
     } finally {
       setFetching(false);
     }
@@ -74,6 +102,26 @@ export default function CategoryDetailPage() {
     }
   };
 
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const options: Intl.DateTimeFormatOptions = {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    };
+    const formattedDate = date
+      .toLocaleDateString("id-ID", options)
+      .replace(".", ""); // biar "Sept." jadi "Sept"
+
+    const formattedTime = date.toLocaleTimeString("id-ID", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    // Ganti titik ":" pada jam dengan "."
+    return `${formattedDate}, ${formattedTime.replace(":", ".")}`;
+  };
+
   useEffect(() => {
     fetchCategory();
   }, [categoryId, setValue]);
@@ -83,7 +131,7 @@ export default function CategoryDetailPage() {
   if (!category) return null;
 
   return (
-    <Card className="max-w-md mt-6 p-6">
+    <Card className="max-w-md p-6">
       <h1 className="text-xl font-bold mb-4">Detail Kategori</h1>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
@@ -93,16 +141,12 @@ export default function CategoryDetailPage() {
 
         <div>
           <label className="block text-sm font-medium mb-1">Dibuat:</label>
-          <p className="text-gray-700">
-            {new Date(category.createdAt).toLocaleString()}
-          </p>
+          <p className="text-gray-700">{formatDateTime(category.createdAt)}</p>
         </div>
 
         <div>
           <label className="block text-sm font-medium mb-1">Diperbarui:</label>
-          <p className="text-gray-700">
-            {new Date(category.updatedAt).toLocaleString()}
-          </p>
+          <p className="text-gray-700">{formatDateTime(category.updatedAt)}</p>
         </div>
 
         <div>

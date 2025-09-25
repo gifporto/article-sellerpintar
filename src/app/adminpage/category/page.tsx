@@ -32,6 +32,7 @@ import {
   AlertDialogFooter,
 } from "@/components/ui/alert-dialog";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import dummyData from "@/data/dummyData.json";
 
 
 type Category = {
@@ -70,7 +71,27 @@ export default function CategoryPage() {
       setCategories(result.data);
       setTotalPages(result.totalPages);
     } catch (error) {
-      toast.error("Gagal mengambil data kategori");
+      // fallback dummy
+      const filtered = dummyData.categories.filter((c) =>
+        debouncedSearch
+          ? c.name.toLowerCase().includes(debouncedSearch.toLowerCase())
+          : true
+      );
+
+      setCategories(
+        filtered
+          .slice((page - 1) * limit, page * limit)
+          .map((c) => ({
+            ...c,
+            userId: "dummy-user",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          }))
+      );
+      setTotalPages(Math.ceil(filtered.length / limit));
+      toast.warning(
+        "Gagal mengambil kategori dari server, menggunakan data dummy"
+      );
     } finally {
       setLoading(false);
     }
@@ -179,7 +200,7 @@ export default function CategoryPage() {
               categories.map((cat, idx) => (
                 <TableRow key={cat.id}>
                   <TableCell>{(page - 1) * limit + idx + 1}</TableCell>
-                  <TableCell>{cat.name}</TableCell>
+                  <TableCell className="max-w-xs truncate whitespace-nowrap">{cat.name}</TableCell>
                   <TableCell>{formatDateTime(cat.createdAt)}</TableCell>
                   <TableCell>{formatDateTime(cat.updatedAt)}</TableCell>
                   <TableCell className="space-x-2">

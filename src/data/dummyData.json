@@ -1,0 +1,53 @@
+{
+  "users": [
+    {
+      "username": "admindummy",
+      "password": "password",
+      "role": "Admin",
+      "token": "dummy-admin-token"
+    },
+    {
+      "username": "userdummy",
+      "password": "password",
+      "role": "User",
+      "token": "dummy-user-token"
+    }
+  ],
+  "categories": [
+    { "id": "1", "name": "Teknologi" },
+    { "id": "2", "name": "Bisnis" },
+    { "id": "3", "name": "Pendidikan" }
+  ],
+  "articles": [
+    {
+      "id": "a1",
+      "title": "Artikel Dummy 1",
+      "content": "Ini adalah konten artikel dummy 1...",
+      "imageUrl": "/bg-dummy.jpg",
+      "user": { "username": "Admin" },
+      "category": { "id": "1", "name": "Teknologi" },
+      "createdAt": "2025-09-25T00:00:00Z",
+      "updatedAt": "2025-09-25T00:00:00Z"
+    },
+    {
+      "id": "a2",
+      "title": "Artikel Dummy 2",
+      "content": "Ini adalah konten artikel dummy 2...",
+      "imageUrl": "/bg-dummy.jpg",
+      "user": { "username": "User" },
+      "category": { "id": "2", "name": "Bisnis" },
+      "createdAt": "2025-09-25T00:00:00Z",
+      "updatedAt": "2025-09-25T00:00:00Z"
+    },
+    {
+      "id": "a3",
+      "title": "Artikel Dummy 3",
+      "content": "Ini adalah konten artikel dummy 3...",
+      "imageUrl": "/bg-dummy.jpg",
+      "user": { "username": "User" },
+      "category": { "id": "2", "name": "Bisnis" },
+      "createdAt": "2025-09-25T00:00:00Z",
+      "updatedAt": "2025-09-25T00:00:00Z"
+    }
+  ]
+}

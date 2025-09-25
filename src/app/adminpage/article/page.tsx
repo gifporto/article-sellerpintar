@@ -39,6 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import dummyData from "@/data/dummyData.json";
 
 type Article = {
   id: string;
@@ -85,7 +86,16 @@ export default function ArticlePage() {
       setArticles(result.data);
       setTotalPages(result.totalPages);
     } catch (error) {
-      toast.error("Gagal mengambil artikel");
+      // fallback dummy
+      const filtered = dummyData.articles.filter(a =>
+        selectedCategory === "all" ? true : a.category.id === selectedCategory
+      ).filter(a =>
+        debouncedSearch ? a.title.toLowerCase().includes(debouncedSearch.toLowerCase()) : true
+      );
+
+      setArticles(filtered.slice((page - 1) * limit, page * limit));
+      setTotalPages(Math.ceil(filtered.length / limit));
+      toast.warning("Gagal mengambil artikel dari server, menggunakan data dummy");
     } finally {
       setLoading(false);
     }
@@ -93,10 +103,15 @@ export default function ArticlePage() {
 
   const fetchCategories = async () => {
     try {
-      const result = await categoryService.getCategories();
+      const result = await categoryService.getCategories({
+        page: 1,
+        limit: 9999,
+      });
       setCategories(result.data);
     } catch (err) {
-      toast.error("Gagal mengambil kategori");
+      // fallback dummy
+      setCategories(dummyData.categories);
+      toast.warning("Gagal mengambil kategori dari server, menggunakan data dummy");
     }
   };
 
@@ -230,7 +245,9 @@ export default function ArticlePage() {
               articles.map((article, idx) => (
                 <TableRow key={article.id}>
                   <TableCell>{(page - 1) * limit + idx + 1}</TableCell>
-                  <TableCell>{article.title}</TableCell>
+                  <TableCell className="max-w-xs truncate whitespace-nowrap">
+                    {article.title}
+                  </TableCell>
                   <TableCell>{article.category.name}</TableCell>
                   <TableCell>{article.user.username}</TableCell>
                   <TableCell>{formatDateTime(article.createdAt)}</TableCell>

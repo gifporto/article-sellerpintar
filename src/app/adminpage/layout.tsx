@@ -1,10 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import Link from "next/link";
-import Cookies from "js-cookie";
-import { authService } from "@/lib/api";
+import { usePathname } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
   SidebarProvider,
@@ -20,38 +17,15 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
-import { ArrowRight, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 
 interface Props {
   children: React.ReactNode;
 }
 
 export default function AdminLayout({ children }: Props) {
-  const [user, setUser] = useState<{ username: string; role: string }>({ username: "", role: "" });
   const [scrolled, setScrolled] = useState(false);
-  const router = useRouter();
   const pathname = usePathname();
-
-  useEffect(() => {
-    const token = Cookies.get("token");
-    if (!token) {
-      router.replace("/auth/login");
-      return;
-    }
-
-    authService.profile()
-      .then((data) => {
-        setUser({ username: data.username, role: data.role });
-        if (data.role !== "Admin") router.replace("/auth/login");
-      })
-      .catch(() => router.replace("/auth/login"));
-  }, [router]);
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("role");
-    router.push("/auth/login");
-  };
 
   // Scroll listener
   useEffect(() => {
@@ -87,7 +61,7 @@ export default function AdminLayout({ children }: Props) {
     <SidebarProvider defaultOpen>
       <AppSidebar />
       <SidebarInset>
-        <header className={`fixed w-full z-50 flex h-16 shrink-0 items-center gap-2 px-4 transition-colors duration-300 ${scrolled ? 'bg-white shadow-md' : ''}`}>
+        <header className={`fixed w-full z-50 flex h-16 shrink-0 items-center gap-2 px-4 transition-colors duration-300 ${scrolled ? 'bg-sidebar shadow-md' : ''}`}>
           <div className="flex items-center gap-2 px-4">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />

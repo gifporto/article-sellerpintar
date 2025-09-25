@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/navigation-menu";
 import { authService } from "@/lib/api";
 import { LogOut, ChevronDown, GalleryVerticalEnd, Menu, X } from "lucide-react";
+import { toast } from "sonner";
 
 interface Props {
   children: React.ReactNode;
@@ -42,17 +43,27 @@ export default function UserLayout({ children }: Props) {
 
     setRole(roleCookie || "");
 
+    // Dummy fallback jika profile API gagal
+    const DUMMY_PROFILE = {
+      username: "UserDummy",
+      role: "User",
+    };
+
     authService
       .profile()
       .then((data) => setUsername(data.username))
-      .catch(() => router.replace("/auth/login"));
+      .catch(() => {
+        // fallback ke dummy profile
+        setUsername(DUMMY_PROFILE.username);
+        setRole(DUMMY_PROFILE.role);
+
+        // Opsional: tampilkan toast agar user tahu
+        toast.warning(
+          "Sedang menggunakan data backup karena server tidak merespon"
+        );
+      });
   }, [router]);
 
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 0);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   const handleLogout = () => {
     Cookies.remove("token");
@@ -70,9 +81,8 @@ export default function UserLayout({ children }: Props) {
     <div className="flex flex-col min-h-screen w-full">
       {/* Navbar */}
       <nav
-        className={`fixed top-0 left-0 w-full z-50 transition-colors duration-300 ${
-          scrolled ? "bg-white shadow-md" : ""
-        }`}
+        className={`fixed top-0 left-0 w-full z-50 transition-colors duration-300 ${scrolled ? "bg-white shadow-md" : ""
+          }`}
       >
         <div className="max-w-7xl w-full mx-auto px-6 py-3 flex justify-between items-center">
           {/* Logo */}
@@ -90,13 +100,12 @@ export default function UserLayout({ children }: Props) {
               <NavigationMenuItem key={item.href}>
                 <NavigationMenuLink
                   href={item.href}
-                  className={`px-3 py-1 rounded-md hover:bg-gray-100 ${
-                    (item.href === "/userpage" && pathname === "/userpage") ||
-                    (item.href === "/userpage/article" &&
-                      pathname.startsWith("/userpage/article"))
+                  className={`px-3 py-1 rounded-md hover:bg-gray-100 ${(item.href === "/userpage" && pathname === "/userpage") ||
+                      (item.href === "/userpage/article" &&
+                        pathname.startsWith("/userpage/article"))
                       ? "font-semibold"
                       : "text-gray-700"
-                  }`}
+                    }`}
                 >
                   {item.title}
                 </NavigationMenuLink>
@@ -109,7 +118,7 @@ export default function UserLayout({ children }: Props) {
             <DropdownMenu open={open} onOpenChange={setOpen}>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center space-x-2 rounded-md hover:bg-gray-100 px-2 py-1">
-                  <Avatar className="w-8 h-8">
+                  <Avatar className="w-8 h-8 border border-gray-700">
                     <AvatarFallback>{initial}</AvatarFallback>
                   </Avatar>
                   <div className="hidden sm:flex flex-col text-left">
@@ -117,9 +126,8 @@ export default function UserLayout({ children }: Props) {
                     <span className="text-xs text-gray-500">{role}</span>
                   </div>
                   <ChevronDown
-                    className={`w-4 h-4 transition-transform duration-200 ${
-                      open ? "rotate-180" : "rotate-0"
-                    }`}
+                    className={`w-4 h-4 transition-transform duration-200 ${open ? "rotate-180" : "rotate-0"
+                      }`}
                   />
                 </button>
               </DropdownMenuTrigger>
@@ -127,7 +135,7 @@ export default function UserLayout({ children }: Props) {
               <DropdownMenuContent align="end" className="w-40">
                 <DropdownMenuItem>
                   <div className="flex items-center space-x-2 rounded-md">
-                    <Avatar className="w-8 h-8">
+                    <Avatar className="w-8 h-8 border border-gray-700">
                       <AvatarFallback>{initial}</AvatarFallback>
                     </Avatar>
                     <div className="hidden sm:flex flex-col text-left">
@@ -162,13 +170,12 @@ export default function UserLayout({ children }: Props) {
               <a
                 key={item.href}
                 href={item.href}
-                className={`block px-3 py-2 rounded-md ${
-                  (item.href === "/userpage" && pathname === "/userpage") ||
-                  (item.href === "/userpage/article" &&
-                    pathname.startsWith("/userpage/article"))
+                className={`block px-3 py-2 rounded-md ${(item.href === "/userpage" && pathname === "/userpage") ||
+                    (item.href === "/userpage/article" &&
+                      pathname.startsWith("/userpage/article"))
                     ? "bg-gray-200 font-semibold"
                     : "text-gray-700 hover:bg-gray-100"
-                }`}
+                  }`}
                 onClick={() => setMobileOpen(false)}
               >
                 {item.title}
@@ -179,7 +186,7 @@ export default function UserLayout({ children }: Props) {
       </nav>
 
       {/* Main content */}
-      <main className="flex-1 bg-gray-100 pt-24">
+      <main className="flex-1 bg-gray-100 pt-16">
         <div className="max-w-7xl w-full mx-auto p-6">{children}</div>
       </main>
     </div>

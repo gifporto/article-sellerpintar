@@ -67,7 +67,7 @@ export default function RegisterPage() {
         <img src="/bg-dummy.jpg" className="rounded-xl mb-4" alt="" />
         <h1 className="text-2xl font-bold mb-4">Register</h1>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-2">
           <div>
             <Input
               placeholder="Username"
@@ -120,7 +120,7 @@ export default function RegisterPage() {
         <p className="text-center text-sm text-gray-500 mt-2">
           Sudah punya akun?{" "}
           <Link href="/auth/login" className="text-black hover:underline">
-            Login di sini
+            Silahkan Login
           </Link>
         </p>
       </div>

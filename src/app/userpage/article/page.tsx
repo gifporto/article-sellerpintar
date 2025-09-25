@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import dummyData from "@/data/dummyData.json"
 
 type Article = {
   id: string;
@@ -53,8 +54,11 @@ export default function ArticlePage() {
 
   // pagination states
   const [page, setPage] = useState<number>(1);
-  const [limit] = useState<number>(10);
+  const [limit] = useState<number>(9);
   const [totalPages, setTotalPages] = useState<number>(1);
+
+  const DUMMY_ARTICLES = dummyData.articles;
+  const DUMMY_CATEGORIES = dummyData.categories;
 
   const fetchArticles = async (page: number) => {
     setLoading(true);
@@ -68,7 +72,10 @@ export default function ArticlePage() {
       setArticles(result.data);
       setTotalPages(result.totalPages);
     } catch (error) {
-      toast.error("Gagal mengambil artikel");
+      // fallback ke dummy data
+      toast.warning("Sedang menggunakan data backup (artikel dummy)");
+      setArticles(DUMMY_ARTICLES);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }
@@ -76,10 +83,14 @@ export default function ArticlePage() {
 
   const fetchCategories = async () => {
     try {
-      const result = await categoryService.getCategories();
+      const result = await categoryService.getCategories({
+        page: 1,
+        limit: 9999,
+      });
       setCategories(result.data);
     } catch (err) {
-      toast.error("Gagal mengambil kategori");
+      toast.warning("Sedang menggunakan data backup (kategori dummy)");
+      setCategories(DUMMY_CATEGORIES);
     }
   };
 
@@ -117,7 +128,7 @@ export default function ArticlePage() {
   }, [page, selectedCategory, debouncedSearch]);
 
   return (
-    <div  className="space-y-4 bg-white rounded-2xl p-4">
+    <div className="space-y-4 bg-white rounded-2xl p-4">
       {/* Filter & Search */}
       <div className="flex gap-2">
         <Select
@@ -172,19 +183,22 @@ export default function ArticlePage() {
               >
                 {/* Image */}
                 {article.imageUrl ? (
-                  <img
-                    src={article.imageUrl}
-                    alt={article.title}
-                    className="md:w-60 md:h-60 w-full object-cover rounded-md"
-                  />
+                  <div className="md:w-80 md:h-60 w-40 h-40 overflow-hidden rounded-md">
+                    <img
+                      src={article.imageUrl}
+                      alt={article.title}
+                      className="w-full h-full object-cover object-center"
+                    />
+                  </div>
                 ) : (
-                  <div className="md:w-60 md:h-60 w-full min-h-30 bg-gray-200 rounded-md flex items-center justify-center text-gray-400">
+                  <div className="md:w-80 md:h-60 w-40 h-40 bg-gray-200 rounded-md flex items-center justify-center text-gray-400">
                     No Image
                   </div>
                 )}
 
+
                 <div className="w-full">
-                  <div className="flex justify-between items-end w-full mb-4">
+                  <div className="md:flex justify-between items-end w-full mb-4">
                     {/* Info */}
                     <div className="flex flex-col gap-1">
                       <h3 className="font-semibold text-xl">{article.title}</h3>
@@ -194,7 +208,7 @@ export default function ArticlePage() {
                     </div>
 
                     {/* Aksi */}
-                    <div className="flex justify-end gap-2 items-center">
+                    <div className="flex md:justify-end justify-between gap-2 items-center">
                       <p className="text-sm text-gray-500">
                         Dibuat: {formatDateTime(article.createdAt)}
                       </p>
