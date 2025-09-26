@@ -43,6 +43,7 @@ export default function UserLayout({ children }: Props) {
 
     setRole(roleCookie || "");
 
+
     // Dummy fallback jika profile API gagal
     const DUMMY_PROFILE = {
       username: "UserDummy",
@@ -64,11 +65,29 @@ export default function UserLayout({ children }: Props) {
       });
   }, [router]);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 50) { // ganti 50 sesuai kebutuhan
+        setScrolled(true);
+      } else {
+        setScrolled(false);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
 
   const handleLogout = () => {
     Cookies.remove("token");
     Cookies.remove("role");
     router.push("/auth/login");
+    toast.success(
+      "Anda berhasil Logout"
+    );
   };
 
   const initial = username ? username.charAt(0).toUpperCase() : "U";
@@ -101,10 +120,10 @@ export default function UserLayout({ children }: Props) {
                 <NavigationMenuLink
                   href={item.href}
                   className={`px-3 py-1 rounded-md hover:bg-gray-100 ${(item.href === "/userpage" && pathname === "/userpage") ||
-                      (item.href === "/userpage/article" &&
-                        pathname.startsWith("/userpage/article"))
-                      ? "font-semibold"
-                      : "text-gray-700"
+                    (item.href === "/userpage/article" &&
+                      pathname.startsWith("/userpage/article"))
+                    ? "font-bold"
+                    : "text-gray-500 font-medium hover:bg-gray-100"
                     }`}
                 >
                   {item.title}
@@ -138,7 +157,7 @@ export default function UserLayout({ children }: Props) {
                     <Avatar className="w-8 h-8 border border-gray-700">
                       <AvatarFallback>{initial}</AvatarFallback>
                     </Avatar>
-                    <div className="hidden sm:flex flex-col text-left">
+                    <div className="flex flex-col text-left">
                       <span className="text-sm font-medium">{username}</span>
                       <span className="text-xs text-gray-500">{role}</span>
                     </div>
@@ -171,10 +190,10 @@ export default function UserLayout({ children }: Props) {
                 key={item.href}
                 href={item.href}
                 className={`block px-3 py-2 rounded-md ${(item.href === "/userpage" && pathname === "/userpage") ||
-                    (item.href === "/userpage/article" &&
-                      pathname.startsWith("/userpage/article"))
-                    ? "bg-gray-200 font-semibold"
-                    : "text-gray-700 hover:bg-gray-100"
+                  (item.href === "/userpage/article" &&
+                    pathname.startsWith("/userpage/article"))
+                  ? "font-bold"
+                  : "text-gray-500 font-medium hover:bg-gray-100"
                   }`}
                 onClick={() => setMobileOpen(false)}
               >

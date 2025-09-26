@@ -34,7 +34,7 @@ export const authService = {
 };
 
 export const articleService = {
-  getArticles: async (params?: { page?: number; limit?: number; title?: string; category?: string }) => {
+  getArticles: async (params?: { page?: number; limit?: number; title?: string; category?: string; userId?: string }) => {
     const response = await api.get("/articles", { params });
 
     return {

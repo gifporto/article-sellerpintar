@@ -161,7 +161,6 @@ export default function CategoryDetailPage() {
           <Button type="submit" disabled={isSubmitting || loading}>
             {isSubmitting || loading ? (
               <div className="flex items-center space-x-2">
-                <LoadingSpinner size={5} />
                 <span>Menyimpan...</span>
               </div>
             ) : (

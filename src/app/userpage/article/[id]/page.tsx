@@ -115,7 +115,6 @@ export default function ArticleDetailPage() {
         <Button onClick={fetchOtherArticles} className="mt-4" disabled={loadingOther}>
           {loadingOther ? (
             <div className="flex items-center space-x-2">
-              <LoadingSpinner size={5} />
               <span>Memuat...</span>
             </div>
           ) : (

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { authService } from "@/lib/api";
 import Cookies from "js-cookie";
+import { toast } from "sonner";
 
 import { NavUser } from "./nav-user";
 import { VersionSwitcher } from "@/components/version-switcher";
@@ -106,6 +107,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const handleLogout = () => {
     Cookies.remove("token");
     router.push("/auth/login");
+    toast.success(
+      "Anda berhasil Logout"
+    );
   };
 
   return (
