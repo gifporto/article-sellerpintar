@@ -25,6 +25,12 @@ export default function LandingPage() {
     { title: "Kategori", href: "section3" },
   ];
 
+  const AUTH_LINKS = {
+    login: "/auth/login",
+    register: "/auth/register",
+  };
+
+
   // Navbar transparan -> putih saat scroll
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10);
@@ -109,10 +115,10 @@ export default function LandingPage() {
 
           {/* Auth Buttons (desktop) */}
           <div className="hidden md:flex gap-3">
-            <Button variant="outline" onClick={() => router.push("/auth/login")}>
+            <Button variant="outline" onClick={() => router.push(AUTH_LINKS.login)}>
               Login
             </Button>
-            <Button onClick={() => router.push("/auth/register")}>
+            <Button onClick={() => router.push(AUTH_LINKS.register)}>
               Register
             </Button>
           </div>
@@ -148,7 +154,7 @@ export default function LandingPage() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  router.push("/login");
+                  router.push(AUTH_LINKS.login);
                   setMobileOpen(false);
                 }}
               >
@@ -156,7 +162,7 @@ export default function LandingPage() {
               </Button>
               <Button
                 onClick={() => {
-                  router.push("/register");
+                  router.push(AUTH_LINKS.register);
                   setMobileOpen(false);
                 }}
               >
