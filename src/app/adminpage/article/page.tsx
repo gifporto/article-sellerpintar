@@ -229,7 +229,7 @@ export default function ArticlePage() {
               <TableRow className="w-full">
                 <TableCell colSpan={7} className="p-0">
                   <div className="flex justify-center items-center h-64 w-fullw">
-                    <LoadingSpinner size={10} />
+                    <LoadingSpinner/>
                   </div>
                 </TableCell>
               </TableRow>

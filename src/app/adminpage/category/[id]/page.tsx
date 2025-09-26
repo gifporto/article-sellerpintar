@@ -126,7 +126,7 @@ export default function CategoryDetailPage() {
     fetchCategory();
   }, [categoryId, setValue]);
 
-  if (fetching) return <LoadingSpinner size={12} />;
+  if (fetching) return <LoadingSpinner/>;
 
   if (!category) return null;
 

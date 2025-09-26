@@ -163,7 +163,7 @@ export default function ArticleEditPage() {
     }
   };
 
-  if (fetching) return <LoadingSpinner size={12} />;
+  if (fetching) return <LoadingSpinner/>;
 
   return (
     <Card className="max-w-md p-6">

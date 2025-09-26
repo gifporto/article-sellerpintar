@@ -85,7 +85,7 @@ export default function ArticleDetailPage() {
   };
 
   // Jika artikel utama masih loading
-  if (loadingArticle) return <LoadingSpinner size={12} />;
+  if (loadingArticle) return <LoadingSpinner/>;
 
   if (!article) return <p className="text-center py-10">Artikel tidak ditemukan</p>;
 

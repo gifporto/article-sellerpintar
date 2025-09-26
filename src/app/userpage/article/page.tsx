@@ -238,7 +238,7 @@ export default function ArticlePage() {
 
         {loading && (
           <div className="flex justify-center items-center my-4">
-            <LoadingSpinner size={10} />
+            <LoadingSpinner/>
           </div>
         )}
 
