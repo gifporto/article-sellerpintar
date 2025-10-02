@@ -40,6 +40,8 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import dummyData from "@/data/dummyData.json";
+import { SearchIcon } from "lucide-react";
+import Link from "next/link";
 
 type Article = {
   id: string;
@@ -74,6 +76,8 @@ export default function ArticlePage() {
   const [limit] = useState<number>(10);
   const [totalPages, setTotalPages] = useState<number>(1);
 
+  const [total, setTotal] = useState(0);
+
   const fetchArticles = async (page: number) => {
     setLoading(true);
     try {
@@ -85,6 +89,8 @@ export default function ArticlePage() {
       });
       setArticles(result.data);
       setTotalPages(result.totalPages);
+
+      setTotal(result.totalData);
     } catch (error) {
       // fallback dummy
       const filtered = dummyData.articles.filter(a =>
@@ -94,6 +100,7 @@ export default function ArticlePage() {
       );
 
       setArticles(filtered.slice((page - 1) * limit, page * limit));
+      setTotal(filtered.length);
       setTotalPages(Math.ceil(filtered.length / limit));
       toast.warning("Gagal mengambil artikel dari server, menggunakan data dummy");
     } finally {
@@ -170,45 +177,51 @@ export default function ArticlePage() {
   return (
     <Card className="space-y-2 px-4">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Artikel</h1>
+        <p className="text-sm text-gray-500">Total Artikel: {total}</p>
+      </div>
+
+      <div className="flex md:flex-row flex-col gap-2 justify-between">
+        {/* Filter & Search */}
+        <div className="flex gap-2">
+          <Select
+            value={selectedCategory}
+            onValueChange={(val) => {
+              setSelectedCategory(val);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Pilih Kategori" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Kategori</SelectItem>
+              {categories
+                .filter((cat) => cat.id) // hanya yang ada id
+                .map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+
+          <div className="relative w-full">
+            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
+            <Input
+              className="pl-9 placeholder:text-slate-400 text-slate-900"
+              placeholder="Cari artikel..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1); // reset page saat search berubah
+              }}
+            />
+          </div>
+        </div>
+
         <Button onClick={() => router.push("/adminpage/article/create")}>
           Tambah Artikel
         </Button>
-      </div>
-
-      {/* Filter & Search */}
-      <div className="flex gap-2">
-        <Select
-          value={selectedCategory}
-          onValueChange={(val) => {
-            setSelectedCategory(val);
-            setPage(1);
-          }}
-        >
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Pilih Kategori" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua Kategori</SelectItem>
-            {categories
-              .filter((cat) => cat.id) // hanya yang ada id
-              .map((cat) => (
-                <SelectItem key={cat.id} value={cat.id}>
-                  {cat.name}
-                </SelectItem>
-              ))}
-          </SelectContent>
-        </Select>
-
-
-        <Input
-          placeholder="Cari artikel..."
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(1); // reset page saat search berubah
-          }}
-        />
       </div>
 
       <Card className="p-4">
@@ -216,11 +229,10 @@ export default function ArticlePage() {
           <TableHeader>
             <TableRow>
               <TableHead>No</TableHead>
-              <TableHead>Judul</TableHead>
+              <TableHead>Thumbnail</TableHead>
+              <TableHead>Title</TableHead>
               <TableHead>Category</TableHead>
-              <TableHead>Author</TableHead>
-              <TableHead>Dibuat</TableHead>
-              <TableHead>Diubah</TableHead>
+              <TableHead>Create at</TableHead>
               <TableHead>Aksi</TableHead>
             </TableRow>
           </TableHeader>
@@ -229,7 +241,7 @@ export default function ArticlePage() {
               <TableRow className="w-full">
                 <TableCell colSpan={7} className="p-0">
                   <div className="flex justify-center items-center h-64 w-fullw">
-                    <LoadingSpinner/>
+                    <LoadingSpinner />
                   </div>
                 </TableCell>
               </TableRow>
@@ -245,30 +257,34 @@ export default function ArticlePage() {
               articles.map((article, idx) => (
                 <TableRow key={article.id}>
                   <TableCell>{(page - 1) * limit + idx + 1}</TableCell>
+                  <TableCell>
+
+                    {article.imageUrl ? (
+                      <img src={article.imageUrl} className="w-20 h-20 object-cover rounded-lg" alt="" />
+                    ) : (
+                      <div className="w-20 h-20  bg-gray-200 rounded-md flex items-center justify-center text-gray-400">
+                        No Image
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell className="max-w-xs truncate whitespace-nowrap">
                     {article.title}
                   </TableCell>
                   <TableCell>{article.category.name}</TableCell>
-                  <TableCell>{article.user.username}</TableCell>
                   <TableCell>{formatDateTime(article.createdAt)}</TableCell>
-                  <TableCell>{formatDateTime(article.updatedAt)}</TableCell>
                   <TableCell className="space-x-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        router.push(`/adminpage/article/${article.id}`)
-                      }
-                    >
-                      Detail
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
+                    <Link href={`/article/${article.id}`} className="text-blue-600 underline">
+                      Preview
+                    </Link>
+                    <Link href={`/adminpage/article/${article.id}/edit`} className="text-blue-600 underline">
+                      Edit
+                    </Link>
+                    <button
+                      className="text-red-600 underline"
                       onClick={() => confirmDelete(article.id)}
                     >
                       Delete
-                    </Button>
+                    </button>
                   </TableCell>
                 </TableRow>
               ))
